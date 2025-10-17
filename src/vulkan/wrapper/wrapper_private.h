@@ -72,7 +72,6 @@ VK_DEFINE_HANDLE_CASTS(wrapper_command_buffer, vk.base, VkCommandBuffer,
                        VK_OBJECT_TYPE_COMMAND_BUFFER)
 
 struct wrapper_device_memory {
-   struct AHardwareBuffer *ahardware_buffer;
    int dmabuf_fd;
    void *map_address;
    size_t map_size;

@@ -897,9 +897,6 @@ endif
 pre_args += '-DGLAPI_EXPORT_PROTO_ENTRY_POINTS=@0@'.format(with_glapi_export_proto_entry_points.to_int())
 
 with_android_stub = get_option('android-stub')
-if with_wrapper_vk
-  with_android_stub = true
-endif
 
 with_libbacktrace = get_option('android-libbacktrace') \
   .require(with_platform_android, error_message : '`-D android-libbacktrace=enabled` makes no sense without `-D platforms=android`') \

@@ -20,7 +20,9 @@
  * OF THIS SOFTWARE.
  */
 
+#include "util/timespec.h"
 #include <poll.h>
+
 #include <errno.h>
 
 #include "util/perf/cpu_trace.h"

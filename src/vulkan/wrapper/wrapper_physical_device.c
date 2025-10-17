@@ -125,9 +125,6 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       }
       pdevice->vk.wsi_device = &pdevice->wsi_device;
       pdevice->wsi_device.force_bgra8_unorm_first = true;
-#ifdef __TERMUX__
-      pdevice->wsi_device.wants_ahardware_buffer = true;
-#endif
 
       pdevice->dispatch_table.GetPhysicalDeviceMemoryProperties(
          pdevice->dispatch_handle, &pdevice->memory_properties);

@@ -47,9 +47,6 @@
 #include <unistd.h>
 #endif
 
-#ifdef __TERMUX__
-#include <android/hardware_buffer.h>
-#endif
 
 uint64_t WSI_DEBUG;
 
@@ -224,10 +221,6 @@ wsi_device_init(struct wsi_device *wsi,
    WSI_GET_CB(UnmapMemory);
    if (wsi->khr_present_wait)
       WSI_GET_CB(WaitSemaphores);
-#ifdef __TERMUX__
-   WSI_GET_CB(GetMemoryAndroidHardwareBufferANDROID);
-   WSI_GET_CB(GetAndroidHardwareBufferPropertiesANDROID);
-#endif
 #undef WSI_GET_CB
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
@@ -384,12 +377,6 @@ get_blit_type(const struct wsi_device *wsi,
       return wsi_cpu_image_needs_buffer_blit(wsi, cpu_params) ?
          WSI_SWAPCHAIN_BUFFER_BLIT : WSI_SWAPCHAIN_NO_BLIT;
    }
-#ifdef __TERMUX__
-   case WSI_IMAGE_TYPE_AHB: {
-      return wsi->needs_blit ? WSI_SWAPCHAIN_IMAGE_BLIT :
-         WSI_SWAPCHAIN_NO_BLIT;
-   }
-#endif
 #ifdef HAVE_LIBDRM
    case WSI_IMAGE_TYPE_DRM: {
       const struct wsi_drm_image_params *drm_params =
@@ -410,13 +397,6 @@ get_blit_type(const struct wsi_device *wsi,
    }
 }
 
-#ifdef __TERMUX__
-static VkResult
-wsi_configure_ahb_image(const struct wsi_swapchain *chain,
-                        const VkSwapchainCreateInfoKHR *pCreateInfo,
-                        const struct wsi_base_image_params *params,
-                        struct wsi_image_info *info);
-#endif
 
 static VkResult
 configure_image(const struct wsi_swapchain *chain,
@@ -431,11 +411,6 @@ configure_image(const struct wsi_swapchain *chain,
          container_of(params, const struct wsi_cpu_image_params, base);
       return wsi_configure_cpu_image(chain, pCreateInfo, cpu_params, info);
    }
-#ifdef __TERMUX__
-   case WSI_IMAGE_TYPE_AHB: {
-      return wsi_configure_ahb_image(chain, pCreateInfo, params, info);
-   }
-#endif
 #ifdef HAVE_LIBDRM
    case WSI_IMAGE_TYPE_DRM: {
       const struct wsi_drm_image_params *drm_params =
@@ -735,12 +710,6 @@ wsi_destroy_image_info(const struct wsi_swapchain *chain,
       vk_free(&chain->alloc, info->modifier_props);
       info->modifier_props = NULL;
    }
-#ifdef __TERMUX__
-   if (info->ahb_desc != NULL) {
-      vk_free(&chain->alloc, info->ahb_desc);
-      info->ahb_desc = NULL;
-   }
-#endif
 }
 
 VkResult
@@ -803,10 +772,6 @@ wsi_destroy_image(const struct wsi_swapchain *chain,
 {
    const struct wsi_device *wsi = chain->wsi;
 
-#ifdef __TERMUX__
-   if (image->ahb)
-      AHardwareBuffer_release(image->ahb);
-#endif
 
 #ifndef _WIN32
    if (image->dma_buf_fd >= 0)
@@ -1584,7 +1549,13 @@ wsi_common_queue_present(const struct wsi_device *wsi,
                .sType = VK_STRUCTURE_TYPE_WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA,
                .memory = image->memory,
             };
-            __vk_append_struct(&submit_info, &mem_signal);
+            /* FIXME: Qualcomm's Adreno driver HATES
+             * VK_STRUCTURE_TYPE_WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA
+             * and it'll keep complaining NON STOP.
+             * It's too annoying so I turned it off, but it's not
+             * recognized by the driver so it's not doing anything anyway
+             */
+            //__vk_append_struct(&submit_info, &mem_signal);
          }
       }
 
@@ -1866,15 +1837,15 @@ wsi_create_buffer_blit_context(const struct wsi_swapchain *chain,
    wsi->GetBufferMemoryRequirements(chain->device, image->blit.buffer, &reqs);
    assert(reqs.size <= info->linear_size);
 
-   struct wsi_memory_allocate_info memory_wsi_info = {
+   /*struct wsi_memory_allocate_info memory_wsi_info = {
       .sType = VK_STRUCTURE_TYPE_WSI_MEMORY_ALLOCATE_INFO_MESA,
       .pNext = NULL,
       .implicit_sync = info->image_type == WSI_IMAGE_TYPE_DRM &&
                        !info->explicit_sync,
-   };
+   };*/
    VkMemoryDedicatedAllocateInfo buf_mem_dedicated_info = {
       .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
-      .pNext = &memory_wsi_info,
+      .pNext = NULL,//&memory_wsi_info,
       .image = VK_NULL_HANDLE,
       .buffer = image->blit.buffer,
    };
@@ -2209,161 +2180,6 @@ wsi_create_cpu_linear_image_mem(const struct wsi_swapchain *chain,
    return VK_SUCCESS;
 }
 
-#ifdef __TERMUX__
-static VkResult
-wsi_create_ahb_image_mem(const struct wsi_swapchain *chain,
-                         const struct wsi_image_info *info,
-                         struct wsi_image *image)
-{
-   const struct wsi_device *wsi = chain->wsi;
-   VkAndroidHardwareBufferPropertiesANDROID ahb_props;
-   VkResult result;
-
-   if (AHardwareBuffer_allocate(info->ahb_desc, &image->ahb))
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
-
-   ahb_props = (VkAndroidHardwareBufferPropertiesANDROID) {
-      .sType = VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID,
-   };
-
-   result = wsi->GetAndroidHardwareBufferPropertiesANDROID(
-      chain->device, image->ahb, &ahb_props);
-   if (result != VK_SUCCESS)
-      return result;
-
-   const VkMemoryDedicatedAllocateInfo memory_dedicated_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
-      .image = image->image,
-      .buffer = VK_NULL_HANDLE,
-   };
-   VkImportAndroidHardwareBufferInfoANDROID impory_memory_info = {
-      .sType = VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
-      .pNext = &memory_dedicated_info,
-      .buffer = image->ahb,
-   };
-   VkMemoryAllocateInfo memory_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &impory_memory_info,
-      .allocationSize = ahb_props.allocationSize,
-      .memoryTypeIndex =
-         wsi_select_device_memory_type(wsi, ahb_props.memoryTypeBits),
-   };
-
-   result = wsi->AllocateMemory(chain->device, &memory_info,
-                                &chain->alloc, &image->memory);
-   if (result != VK_SUCCESS)
-      return result;
-
-   image->num_planes = 1;
-   image->drm_modifier = 0;
-
-   return VK_SUCCESS;
-}
-
-static VkResult
-wsi_create_ahb_blit_context(const struct wsi_swapchain *chain,
-                            const struct wsi_image_info *info,
-                            struct wsi_image *image)
-{
-   assert(chain->blit.type == WSI_SWAPCHAIN_IMAGE_BLIT);
-
-   const VkExternalMemoryHandleTypeFlags handle_types =
-      VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
-
-   const struct wsi_device *wsi = chain->wsi;
-   VkResult result;
-
-   const VkExternalMemoryImageCreateInfo image_external_info = {
-      .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
-      .handleTypes = handle_types,
-   };
-   const VkImageCreateInfo image_info = {
-      .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-      .pNext = &image_external_info,
-      .flags = 0u,
-      .extent = info->create.extent,
-      .format = VK_FORMAT_R8G8B8A8_UNORM,
-      .imageType = VK_IMAGE_TYPE_2D,
-      .mipLevels = 1,
-      .arrayLayers = 1,
-      .samples = VK_SAMPLE_COUNT_1_BIT,
-      .tiling = VK_IMAGE_TILING_OPTIMAL,
-      .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = info->create.queueFamilyIndexCount,
-      .pQueueFamilyIndices = info->create.pQueueFamilyIndices,
-      .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-   };
-   result = wsi->CreateImage(chain->device, &image_info,
-                             &chain->alloc, &image->blit.image);
-   if (result != VK_SUCCESS)
-      return result;
-
-   VkMemoryDedicatedAllocateInfo img_mem_dedicated_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
-      .pNext = NULL,
-      .image = image->blit.image,
-      .buffer = VK_NULL_HANDLE,
-   };
-   VkExportMemoryAllocateInfo export_info = {
-      .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
-      .pNext = &img_mem_dedicated_info,
-      .handleTypes = handle_types,
-   };
-   VkMemoryAllocateInfo buf_mem_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &export_info,
-      .allocationSize = 0,
-      .memoryTypeIndex = 0,
-   };
-
-   result = wsi->AllocateMemory(chain->device, &buf_mem_info,
-                                &chain->alloc, &image->blit.memory);
-   if (result != VK_SUCCESS)
-      return result;
-
-   result = wsi->BindImageMemory(chain->device, image->blit.image,
-                                 image->blit.memory, 0);
-   if (result != VK_SUCCESS)
-      return result;
-
-   VkMemoryGetAndroidHardwareBufferInfoANDROID get_ahb_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
-      .pNext = NULL,
-      .memory = image->blit.memory,
-   };
-
-   result = wsi->GetMemoryAndroidHardwareBufferANDROID(
-      chain->device, &get_ahb_info, &image->ahb);
-   if (result != VK_SUCCESS)
-      return result;
-
-   VkMemoryRequirements reqs;
-   wsi->GetImageMemoryRequirements(chain->device, image->image, &reqs);
-
-   const VkMemoryDedicatedAllocateInfo memory_dedicated_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
-      .image = image->image,
-   };
-   const VkMemoryAllocateInfo memory_info = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memory_dedicated_info,
-      .allocationSize = reqs.size,
-      .memoryTypeIndex =
-         wsi_select_device_memory_type(wsi, reqs.memoryTypeBits),
-   };
-
-   result = wsi->AllocateMemory(chain->device, &memory_info,
-                                &chain->alloc, &image->memory);
-   if (result != VK_SUCCESS)
-      return result;
-
-   image->num_planes = 1;
-
-   return VK_SUCCESS;
-}
-
-#endif
 
 static VkResult
 wsi_create_cpu_buffer_image_mem(const struct wsi_swapchain *chain,
@@ -2436,115 +2252,6 @@ wsi_configure_cpu_image(const struct wsi_swapchain *chain,
 
    return VK_SUCCESS;
 }
-
-#ifdef __TERMUX__
-inline static uint32_t
-vk_format_to_ahb_format(VkFormat format) {
-   switch (format) {
-   case VK_FORMAT_B8G8R8A8_SRGB:
-   case VK_FORMAT_B8G8R8A8_UNORM:
-      return AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
-   case VK_FORMAT_R5G6B5_UNORM_PACK16:
-      return AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM;
-   case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
-      return AHARDWAREBUFFER_FORMAT_R10G10B10A2_UNORM;
-   default:
-      unreachable("unsupported format");
-   }
-}
-#endif
-
-#ifdef __TERMUX__
-static VkResult
-wsi_configure_ahb_image(const struct wsi_swapchain *chain,
-                        const VkSwapchainCreateInfoKHR *pCreateInfo,
-                        const struct wsi_base_image_params *params,
-                        struct wsi_image_info *info)
-{
-   assert(params->image_type == WSI_IMAGE_TYPE_AHB);
-   assert(chain->blit.type == WSI_SWAPCHAIN_NO_BLIT ||
-          chain->blit.type == WSI_SWAPCHAIN_IMAGE_BLIT);
-
-   VkResult result;
-
-   if (chain->blit.type == WSI_SWAPCHAIN_IMAGE_BLIT) {
-      result = wsi_configure_image(chain, pCreateInfo, 0, info);
-      if (result != VK_SUCCESS)
-         return result;
-
-      wsi_configure_image_blit_image(chain, info);
-      info->create_mem = wsi_create_ahb_blit_context;
-      return VK_SUCCESS;
-   }
-
-   VkExternalMemoryHandleTypeFlags handle_types =
-      VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
-
-   VkPhysicalDeviceImageFormatInfo2 format_info = {
-      .sType =
-         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
-      .format = pCreateInfo->imageFormat,
-      .type = VK_IMAGE_TYPE_2D,
-      .tiling = VK_IMAGE_TILING_OPTIMAL,
-      .usage = pCreateInfo->imageUsage,
-      .flags = info->create.flags,
-   };
-   VkPhysicalDeviceExternalImageFormatInfo external_format_info =
-   {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
-      .pNext = NULL,
-      .handleType = handle_types,
-   };
-   __vk_append_struct(&format_info, &external_format_info);
-
-   VkImageFormatProperties2 format_props = {
-      .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
-   };
-   VkExternalImageFormatProperties external_format_props = {
-      .sType = VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES,
-      .pNext = NULL,
-   };
-   __vk_append_struct(&format_props, &external_format_props);
-
-   result = chain->wsi->GetPhysicalDeviceImageFormatProperties2(
-      chain->wsi->pdevice, &format_info, &format_props);
-   if (result != VK_SUCCESS)
-      return result;
-
-   assert(pCreateInfo->imageExtent.width <= format_props.imageFormatProperties.maxExtent.width &&
-          pCreateInfo->imageExtent.height <= format_props.imageFormatProperties.maxExtent.height);
-   assert(external_format_props.externalMemoryProperties.externalMemoryFeatures &
-          VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT);
-
-   result = wsi_configure_image(chain, pCreateInfo, handle_types,
-                                info);
-   if (result != VK_SUCCESS)
-      return result;
-
-   info->ahb_desc = vk_alloc(&chain->alloc,
-                             sizeof(AHardwareBuffer_Desc),
-                             8,
-                             VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-   if (!info->ahb_desc) {
-      wsi_destroy_image_info(chain, info);
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
-   }
-
-   *info->ahb_desc = (AHardwareBuffer_Desc) {
-      .width = info->create.extent.width,
-      .height = info->create.extent.height,
-      .format = vk_format_to_ahb_format(info->create.format),
-      .layers = info->create.arrayLayers,
-      .usage = AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT |
-               AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
-               AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
-   };
-   info->create.format = VK_FORMAT_UNDEFINED;
-   info->create_mem = wsi_create_ahb_image_mem;
-
-   return VK_SUCCESS;
-}
-#endif
 
 VKAPI_ATTR VkResult VKAPI_CALL
 wsi_WaitForPresentKHR(VkDevice device, VkSwapchainKHR _swapchain,

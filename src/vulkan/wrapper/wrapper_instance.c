@@ -11,9 +11,6 @@ const struct vk_instance_extension_table wrapper_instance_extensions = {
    .KHR_surface_protected_capabilities = true,
    .KHR_surface = true,
    .EXT_swapchain_colorspace = true,
-#ifdef VK_USE_PLATFORM_ANDROID_KHR
-   .KHR_android_surface = true,
-#endif
 #ifdef VK_USE_PLATFORM_XCB_KHR
    .KHR_xcb_surface = true,
 #endif
@@ -43,9 +40,9 @@ static PFN_vkEnumerateInstanceExtensionProperties enumerate_instance_extension_p
 static struct vk_instance_extension_table *supported_instance_extensions;
 
 #ifdef __LP64__
-#define DEFAULT_VULKAN_PATH "/system/lib64/libvulkan.so"
+#define DEFAULT_VULKAN_PATH "/opt/qti/usr/lib/libvulkan_adreno.so"
 #else
-#define DEFAULT_VULKAN_PATH "/system/lib/libvulkan.so"
+#define DEFAULT_VULKAN_PATH "/opt/qti/usr/lib32/libvulkan_adreno.so"
 #endif
 
 #include <dlfcn.h>

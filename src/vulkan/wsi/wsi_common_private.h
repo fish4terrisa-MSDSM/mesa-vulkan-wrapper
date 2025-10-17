@@ -1,4 +1,4 @@
-/*
+/*r
  * Copyright © 2017 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -87,9 +87,6 @@ struct wsi_image_info {
    VkExternalMemoryImageCreateInfo ext_mem;
    VkImageFormatListCreateInfo format_list;
    VkImageDrmFormatModifierListCreateInfoEXT drm_mod_list;
-#ifdef __TERMUX__
-   struct AHardwareBuffer_Desc *ahb_desc;
-#endif
 
    enum wsi_image_type image_type;
    bool explicit_sync;
@@ -171,9 +168,6 @@ struct wsi_image {
    int dma_buf_fd;
 #endif
    void *cpu_map;
-#ifdef __TERMUX__
-   struct AHardwareBuffer *ahb;
-#endif
 };
 
 struct wsi_swapchain {

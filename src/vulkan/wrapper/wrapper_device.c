@@ -77,7 +77,7 @@ wrapper_append_required_extensions(const struct vk_device *device,
    REQUIRED_EXTENSION(EXT_external_memory_host);
    REQUIRED_EXTENSION(EXT_external_memory_dma_buf);
    REQUIRED_EXTENSION(EXT_image_drm_format_modifier);
-   REQUIRED_EXTENSION(ANDROID_external_memory_android_hardware_buffer);
+//   REQUIRED_EXTENSION(ANDROID_external_memory_android_hardware_buffer);
 #undef REQUIRED_EXTENSION
 }
 

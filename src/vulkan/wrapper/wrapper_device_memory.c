@@ -8,9 +8,6 @@
 #include "util/hash_table.h"
 #include "util/os_file.h"
 #include "vk_util.h"
-
-#include <android/hardware_buffer.h>
-#include <vndk/hardware_buffer.h>
 #include <sys/mman.h>
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -20,14 +17,12 @@ wrapper_AllocateMemory(VkDevice _device,
                        VkDeviceMemory* pMemory)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
-   const VkImportAndroidHardwareBufferInfoANDROID *import_ahb_info;
    const VkImportMemoryFdInfoKHR *import_fd_info;
    const VkExportMemoryAllocateInfo *export_info;
    VkExportMemoryAllocateInfo local_export_info;
    VkMemoryAllocateInfo wrapper_allocate_info;
    struct wrapper_device_memory *memory;
    VkMemoryPropertyFlags mem_flags;
-   bool can_get_ahardware_buffer;
    bool can_get_dmabuf_fd;
    VkResult result;
 
@@ -50,28 +45,20 @@ wrapper_AllocateMemory(VkDevice _device,
 
    memory->alloc_size = pAllocateInfo->allocationSize;
    memory->dmabuf_fd = -1;
-   memory->ahardware_buffer = NULL;
    wrapper_allocate_info = *pAllocateInfo;
    
-   import_ahb_info = vk_find_struct_const(pAllocateInfo,
-      IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID);
    import_fd_info = vk_find_struct_const(pAllocateInfo,
       IMPORT_MEMORY_FD_INFO_KHR);
    export_info = vk_find_struct_const(pAllocateInfo,
       EXPORT_MEMORY_ALLOCATE_INFO);
 
-   if (import_ahb_info) {
-      memory->ahardware_buffer = import_ahb_info->buffer;
-      AHardwareBuffer_acquire(memory->ahardware_buffer);
-   } else if (import_fd_info) {
+   if (import_fd_info) {
       memory->dmabuf_fd = os_dupfd_cloexec(import_fd_info->fd);
    } else if (export_info == NULL) {
       local_export_info = (VkExportMemoryAllocateInfo) {
          .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
          .pNext = wrapper_allocate_info.pNext,
-         .handleTypes = device->physical->vk.supported_extensions.
-            EXT_external_memory_dma_buf ? VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT :
-            VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID,
+         .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
       };
       wrapper_allocate_info.pNext = &local_export_info;
       export_info = &local_export_info;
@@ -82,8 +69,6 @@ wrapper_AllocateMemory(VkDevice _device,
                                                   pAllocator,
                                                   pMemory);
    if (result != VK_SUCCESS) {
-      if (memory->ahardware_buffer)
-         AHardwareBuffer_release(memory->ahardware_buffer);
       if (memory->dmabuf_fd != -1)
          close(memory->dmabuf_fd);
       vk_free2(&device->vk.alloc, pAllocator, memory);
@@ -92,8 +77,6 @@ wrapper_AllocateMemory(VkDevice _device,
 
    can_get_dmabuf_fd = (export_info && export_info->handleTypes ==
       VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
-   can_get_ahardware_buffer = (export_info && export_info->handleTypes ==
-      VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID);
 
    if (can_get_dmabuf_fd) {
       const VkMemoryGetFdInfoKHR get_fd_info = {
@@ -104,13 +87,6 @@ wrapper_AllocateMemory(VkDevice _device,
       };
       device->dispatch_table.GetMemoryFdKHR(device->dispatch_handle,
          &get_fd_info, &memory->dmabuf_fd);
-   } else if (can_get_ahardware_buffer) {
-      const VkMemoryGetAndroidHardwareBufferInfoANDROID get_ahb_info = {
-         .sType = VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
-         .memory = *pMemory,
-      };
-      device->dispatch_table.GetMemoryAndroidHardwareBufferANDROID(
-         device->dispatch_handle, &get_ahb_info, &memory->ahardware_buffer);
    }
 
    _mesa_hash_table_insert(device->memorys, (void *)(*pMemory), memory);
@@ -132,8 +108,6 @@ wrapper_FreeMemory(VkDevice _device, VkDeviceMemory _memory,
       struct wrapper_device_memory *memory = entry->data;
       if (memory->map_address && memory->map_size)
          munmap(memory->map_address, memory->map_size);
-      if (memory->ahardware_buffer)
-         AHardwareBuffer_release(memory->ahardware_buffer);
       if (memory->dmabuf_fd != -1)
          close(memory->dmabuf_fd);
       vk_free2(&device->vk.alloc, pAllocator, memory);
@@ -179,27 +153,9 @@ wrapper_MapMemory2KHR(VkDevice _device,
          return VK_SUCCESS;
       }
    }
-   assert(memory->dmabuf_fd >= 0 || memory->ahardware_buffer != NULL);
+   assert(memory->dmabuf_fd >= 0);
 
-   if (memory->ahardware_buffer) {
-      const native_handle_t *handle;
-      const int *handle_fds;
-
-      handle = AHardwareBuffer_getNativeHandle(memory->ahardware_buffer);
-      handle_fds = &handle->data[0];
-
-      int idx;
-      for (idx = 0; idx < handle->numFds; idx++) {
-         size_t size = lseek(handle_fds[idx], 0, SEEK_END);
-         if (size >= memory->alloc_size) {
-            break;
-         }
-      }
-      assert(idx < handle->numFds);
-      fd = handle_fds[idx];
-   } else {
-      fd = memory->dmabuf_fd;
-   }
+   fd = memory->dmabuf_fd;
 
    if (pMemoryMapInfo->size == VK_WHOLE_SIZE)
       memory->map_size = memory->alloc_size > 0 ?

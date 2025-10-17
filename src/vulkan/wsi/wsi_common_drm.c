@@ -667,14 +667,14 @@ wsi_create_native_image_mem(const struct wsi_swapchain *chain,
    VkMemoryRequirements reqs;
    wsi->GetImageMemoryRequirements(chain->device, image->image, &reqs);
 
-   const struct wsi_memory_allocate_info memory_wsi_info = {
+   /*const struct wsi_memory_allocate_info memory_wsi_info = {
       .sType = VK_STRUCTURE_TYPE_WSI_MEMORY_ALLOCATE_INFO_MESA,
       .pNext = NULL,
       .implicit_sync = !info->explicit_sync,
-   };
+   };*/
    const VkExportMemoryAllocateInfo memory_export_info = {
       .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
-      .pNext = &memory_wsi_info,
+      .pNext = NULL,//&memory_wsi_info,
       .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
    };
    const VkMemoryDedicatedAllocateInfo memory_dedicated_info = {
