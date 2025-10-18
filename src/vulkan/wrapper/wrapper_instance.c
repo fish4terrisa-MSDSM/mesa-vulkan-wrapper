@@ -305,3 +305,30 @@ vk_icdGetInstanceProcAddr(VkInstance instance,
 {
    return wrapper_GetInstanceProcAddr(instance, pName);
 }
+
+/* Let's put our bug fixes and dirty hacks here :) */
+VKAPI_ATTR VkResult VKAPI_CALL
+wrapper_CreateGraphicsPipelines(VkDevice device, 
+                                VkPipelineCache pipelineCache, 
+                                uint32_t createInfoCount, 
+                                const VkGraphicsPipelineCreateInfo* pCreateInfos, 
+                                const VkAllocationCallbacks* pAllocator, 
+                                VkPipeline* pPipelines)
+{
+    VK_FROM_HANDLE(wrapper_device, vk_device, device);
+    /* HACK: rasterizer Discard will cause the driver to segfault
+     * currently we just silently drop it
+     */
+    VkGraphicsPipelineCreateInfo* pCreateInfos_nonconst = (VkGraphicsPipelineCreateInfo* )pCreateInfos;
+    VkPipelineRasterizationStateCreateInfo* pRasterizationState_nonconst = pCreateInfos_nonconst->pRasterizationState;
+
+    if(pRasterizationState_nonconst->rasterizerDiscardEnable == VK_TRUE)
+       pRasterizationState_nonconst->rasterizerDiscardEnable = VK_FALSE;
+
+    return vk_device->dispatch_table.CreateGraphicsPipelines(vk_device->dispatch_handle, 
+                                                             pipelineCache, 
+                                                             createInfoCount, 
+                                                             pCreateInfos, 
+                                                             pAllocator, 
+                                                             pPipelines);
+}
