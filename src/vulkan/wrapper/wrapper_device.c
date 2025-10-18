@@ -261,7 +261,7 @@ wrapper_QueueSubmit(VkQueue _queue, uint32_t submitCount,
       for (int j = 0; j < submit_info->commandBufferCount; j++) {
          VK_FROM_HANDLE(wrapper_command_buffer, wcb,
                         submit_info->pCommandBuffers[j]);
-         command_buffers[i][j] = wcb->dispatch_handle;
+         command_buffers[j] = wcb->dispatch_handle;
       }
       wrapper_submits[i] = pSubmits[i];
       wrapper_submits[i].pCommandBuffers = command_buffers[i];
@@ -291,11 +291,11 @@ wrapper_QueueSubmit2(VkQueue _queue, uint32_t submitCount,
       for (int j = 0; j < submit_info->commandBufferInfoCount; j++) {
          VK_FROM_HANDLE(wrapper_command_buffer, wcb,
                         submit_info->pCommandBufferInfos[j].commandBuffer);
-         command_buffers[i][j] = pSubmits[i].pCommandBufferInfos[j];
-         command_buffers[i][j].commandBuffer = wcb->dispatch_handle;
+         command_buffers[j] = pSubmits[i].pCommandBufferInfos[j];
+         command_buffers[j].commandBuffer = wcb->dispatch_handle;
       }
       wrapper_submits[i] = pSubmits[i];
-      wrapper_submits[i].pCommandBufferInfos = wrapper_command_buffers[i];
+      wrapper_submits[i].pCommandBufferInfos = command_buffers;
    }
    result = queue->device->dispatch_table.QueueSubmit2(
       queue->dispatch_handle, submitCount, wrapper_submits, fence);
