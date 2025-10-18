@@ -13,8 +13,8 @@ Usually a version linked with qualcomm's downstream libgbm library will work fin
 Mainly tested with version `r00026` driver on a adreno 740(sm8550) gpu.
 
 ## Bugs
- [] - After `vkmark` end the program will hang. `gdb` tell me it's stuck inside `libllvm-qgl.so`, could be some problem related with pthread.
- [] - `GALLIUM_HUD=fps` with zink will cauae the gpu to crash(recoverable) due to HANGFAULT. Here's (part of) the log:
+ - [] After `vkmark` end the program will hang. `gdb` tell me it's stuck inside `libllvm-qgl.so`, could be some problem related with pthread.
+ - [] `GALLIUM_HUD=fps` with zink will cauae the gpu to crash(recoverable) due to HANGFAULT. Here's (part of) the log:
 ```
 [12890.424239] [      C1] kgsl kgsl-3d0: CP: AHB bus error, CP_RL_ERROR_DETAILS_0:0x10008e79 CP_RL_ERROR_DETAILS_1:0x12144
 [12890.529564] [      C1] kgsl kgsl-3d0: CP: AHB bus error, CP_RL_ERROR_DETAILS_0:0x10008e79 CP_RL_ERROR_DETAILS_1:0x12144
@@ -41,7 +41,7 @@ Mainly tested with version `r00026` driver on a adreno 740(sm8550) gpu.
 [12893.482492] [ T300990] kgsl kgsl-3d0: glmark2[225326]: gpu fault threshold exceeded 3 faults in 2000 msecs
 [12912.693397] [ T502979] kgsl kgsl-3d0: snapshot: objects released
 ```
- [] - many many artifacts, even chromium is kinda buggy and flicking for now.
+ - [] many many artifacts, even chromium is kinda buggy and flicking for now.
 
 ## Goal
 This project's goal(for now) is to make it possible to play minecraft with qualcomm's adreno driver, make full use of the gpu's potential and have no visual bugs.
