@@ -28,8 +28,6 @@ const struct vk_instance_extension_table wrapper_instance_extensions = {
    .EXT_direct_mode_display = true,
 #endif
    .EXT_headless_surface = true,
-   .EXT_debug_utils = true,
-   .EXT_debug_report = true,
 };
 
 static void *vulkan_library_handle;
@@ -107,6 +105,11 @@ static VkResult wrapper_vulkan_init()
 
       supported_instance_extensions->extensions[idx] = true;
    }
+
+   /* Block extensions that don't work. */
+   supported_instance_extensions->EXT_debug_utils = false;
+   supported_instance_extensions->EXT_debug_report = false;
+   supported_instance_extensions->KHR_device_group_creation = false;
 
    return VK_SUCCESS;
 }
@@ -250,7 +253,7 @@ wrapper_DestroyInstance(VkInstance _instance,
    vk_free2(&instance->vk.alloc, pAllocator, instance);
 }
 
-VKAPI_ATTR void VKAPI_CALL
+/*VKAPI_ATTR void VKAPI_CALL
 wrapper_DebugReportMessageEXT(VkInstance _instance,
                                 VkDebugReportFlagsEXT flags,
                                 VkDebugReportObjectTypeEXT objectType,
@@ -279,7 +282,7 @@ wrapper_DebugReportMessageEXT(VkInstance _instance,
    vk_common_DebugReportMessageEXT(instance->dispatch_handle, flags,
                                    objectType, object, location, messageCode,
                                    pLayerPrefix, pMessage);
-}
+}*/
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 wrapper_GetInstanceProcAddr(VkInstance _instance,
