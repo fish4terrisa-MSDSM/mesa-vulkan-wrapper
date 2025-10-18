@@ -264,7 +264,7 @@ wrapper_QueueSubmit(VkQueue _queue, uint32_t submitCount,
          command_buffers[j] = wcb->dispatch_handle;
       }
       wrapper_submits[i] = pSubmits[i];
-      wrapper_submits[i].pCommandBuffers = command_buffers[i];
+      wrapper_submits[i].pCommandBuffers = command_buffers;
    }
    result = queue->device->dispatch_table.QueueSubmit(
       queue->dispatch_handle, submitCount, wrapper_submits, fence);
