@@ -146,9 +146,16 @@ wrapper_CreateDevice(VkPhysicalDevice physicalDevice,
    if (!device)
       return vk_error(physical_device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   list_inithead(&device->command_buffer_list);
-   list_inithead(&device->memory_data_list);
+   list_inithead(&device->command_buffers);
    device->physical = physical_device;
+   device->memorys = _mesa_hash_table_create(NULL,
+                                             _mesa_hash_pointer,
+                                             _mesa_key_pointer_equal);
+   if (!device->memorys) {
+      vk_free2(&physical_device->instance->vk.alloc, pAllocator,
+               device);
+      return vk_error(physical_device, VK_ERROR_OUT_OF_HOST_MEMORY);
+   }
 
    vk_device_dispatch_table_from_entrypoints(
       &dispatch_table, &wrapper_device_entrypoints, true);
@@ -337,7 +344,7 @@ wrapper_command_buffer_create(struct wrapper_device *device,
    wcb->device = device;
    wcb->pool = pool;
    wcb->dispatch_handle = dispatch_handle;
-   list_add(&wrapper_command_buffer->link, &device->command_buffer_list);
+   list_add(&wcb->link, &device->command_buffers);
 
    *pCommandBuffers = wrapper_command_buffer_to_handle(wcb);
 
@@ -419,7 +426,7 @@ wrapper_DestroyCommandPool(VkDevice _device, VkCommandPool commandPool,
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
    list_for_each_entry_safe(struct wrapper_command_buffer, wcb,
-                            &device->command_buffer_list, link) {
+                            &device->command_buffers, link) {
       if (wcb->pool == commandPool) {
          wrapper_command_buffer_destroy(device, wcb);
       }
@@ -433,7 +440,7 @@ wrapper_DestroyDevice(VkDevice _device, const VkAllocationCallbacks* pAllocator)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
    list_for_each_entry_safe(struct wrapper_command_buffer, wcb,
-                            &device->command_buffer_list, link) {
+                            &device->command_buffers, link) {
       wrapper_command_buffer_destroy(device, wcb);
    }
    list_for_each_entry_safe(struct vk_queue, queue, &device->vk.queues, link) {
