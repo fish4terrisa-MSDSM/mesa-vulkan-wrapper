@@ -65,7 +65,7 @@ Warning: Estimated wave size mode doesn't match the final wave size mode.
 ```
 No visual bug spotted tho.
 ## `pipelinestatistics`
-Enable "Discard" caused Segfault.
+Enable "Discard" caused Segfault.(Fixed with dirty hack in `wrapper_instance.c`)
 Got this log:
 ```
 [Warning] Invalid hint set by FE or some other pass, forced with HWRules.
