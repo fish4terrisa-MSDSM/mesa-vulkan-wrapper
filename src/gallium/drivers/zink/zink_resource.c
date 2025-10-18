@@ -1994,6 +1994,11 @@ zink_resource_from_handle(struct pipe_screen *pscreen,
                  unsigned usage)
 {
 #ifdef ZINK_USE_DMABUF
+   if (zink_driverid(zink_screen(pscreen)) == VK_DRIVER_ID_QUALCOMM_PROPRIETARY) {
+      whandle->type = ZINK_EXTERNAL_MEMORY_HANDLE;
+      whandle->modifier = DRM_FORMAT_MOD_INVALID;
+   }
+
    if (whandle->modifier != DRM_FORMAT_MOD_INVALID &&
        !zink_screen(pscreen)->info.have_EXT_image_drm_format_modifier)
       return NULL;

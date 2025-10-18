@@ -2205,7 +2205,7 @@ dri2_initialize_wayland_drm_extensions(struct dri2_egl_display *dri2_dpy)
 
    /* We couldn't retrieve a render node from the dma-buf feedback (or the
     * feedback was not advertised at all), so we must fallback to wl_drm. */
-   if (dri2_dpy->fd_render_gpu == -1) {
+   if (dri2_dpy->fd_render_gpu == -1 && !dri2_dpy->kopper) {
       /* wl_drm not advertised by compositor, so can't continue */
       if (dri2_dpy->wl_drm_name == 0)
          return false;
@@ -2978,6 +2978,7 @@ dri2_initialize_wayland_swrast(_EGLDisplay *disp)
       goto cleanup;
 
    if (disp->Options.Zink) {
+      dri2_dpy->kopper = disp->Options.Zink && !debug_get_bool_option("LIBGL_KOPPER_DISABLE", false);
       if (!dri2_initialize_wayland_drm_extensions(dri2_dpy) && !disp->Options.ForceSoftware)
          goto cleanup;
    }

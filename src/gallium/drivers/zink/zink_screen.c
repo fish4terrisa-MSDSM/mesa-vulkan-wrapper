@@ -1019,7 +1019,6 @@ zink_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_DMABUF:
 #if defined(HAVE_LIBDRM) && (DETECT_OS_LINUX || DETECT_OS_BSD)
       return screen->info.have_KHR_external_memory_fd &&
-             screen->info.have_EXT_external_memory_dma_buf &&
              screen->info.have_EXT_queue_family_foreign
              ? DRM_PRIME_CAP_IMPORT | DRM_PRIME_CAP_EXPORT
              : 0;
@@ -2835,6 +2834,10 @@ init_driver_workarounds(struct zink_screen *screen)
    case VK_DRIVER_ID_MESA_V3DV:
    case VK_DRIVER_ID_MESA_PANVK:
       screen->driver_workarounds.implicit_sync = false;
+      break;
+   case VK_DRIVER_ID_QUALCOMM_PROPRIETARY:
+      screen->driver_workarounds.implicit_sync = false;
+      screen->driver_workarounds.can_do_invalid_linear_modifier = false;
       break;
    default:
       break;

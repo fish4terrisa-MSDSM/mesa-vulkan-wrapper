@@ -988,6 +988,8 @@ dri2_setup_device(_EGLDisplay *disp, EGLBoolean software)
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    _EGLDevice *dev;
    int render_fd;
+   if (disp->Options.Zink && dri2_dpy->fd_render_gpu < 0)
+      software = true;
 
    /* Extensions must be loaded before calling this function */
    assert(dri2_dpy->mesa);
