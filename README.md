@@ -43,6 +43,8 @@ Mainly tested with version `r00026` driver on a adreno 740(sm8550) gpu.
 ```
  - [] many many artifacts, even chromium is kinda buggy and flicking for now.
 
+Check this [FAILEDTESTS.md](FAILEDTESTS.md)
+
 ## Goal
 This project's goal(for now) is to make it possible to play minecraft with qualcomm's adreno driver, make full use of the gpu's potential and have no visual bugs.
 
