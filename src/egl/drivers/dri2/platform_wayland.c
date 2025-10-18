@@ -2978,7 +2978,6 @@ dri2_initialize_wayland_swrast(_EGLDisplay *disp)
       goto cleanup;
 
    if (disp->Options.Zink) {
-      dri2_dpy->kopper = disp->Options.Zink && !debug_get_bool_option("LIBGL_KOPPER_DISABLE", false);
       if (!dri2_initialize_wayland_drm_extensions(dri2_dpy) && !disp->Options.ForceSoftware)
          goto cleanup;
    }
