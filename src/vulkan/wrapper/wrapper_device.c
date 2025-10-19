@@ -168,11 +168,11 @@ wrapper_CreateDevice(VkPhysicalDevice physicalDevice,
       &dispatch_table, &wrapper_device_trampolines, false);
 
 #define DISABLE_EXT(extension, type, feature) \
-   if (!physical_device->base_supported_features.feature) { \
+   if (!physical_device->backup_supported_features.feature) { \
       VK_STRUCTURE_TYPE_##type##_cast *ext = (VK_STRUCTURE_TYPE_##type##_cast *) vk_find_struct_const(pCreateInfo, type); \
       if (ext) { \
          WLOG("Faking extension support for " #extension "->" #feature); \
-         ext->feature = ext->feature & physical_device->base_supported_features.feature; \
+         ext->feature = ext->feature & physical_device->backup_supported_features.feature; \
       } \
    }
 
