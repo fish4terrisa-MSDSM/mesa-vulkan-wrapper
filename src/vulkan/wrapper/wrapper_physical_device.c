@@ -154,6 +154,7 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       supported_features->hostQueryReset = true;
       supported_features->customBorderColors = true;
       supported_features->customBorderColorWithoutFormat = true;
+      supported_features->dualSrcBlend = true; // Missing on G715 r38p1
 
       result = wsi_device_init(&pdevice->wsi_device,
                                wrapper_physical_device_to_handle(pdevice),
