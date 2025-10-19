@@ -20,9 +20,11 @@ const struct vk_device_extension_table wrapper_device_extensions =
 #endif
    .KHR_present_id = true,
    .KHR_present_wait = true,
+   .KHR_dynamic_rendering = true,
    .KHR_incremental_present = true,
-   .KHR_map_memory2 = true,
    .EXT_map_memory_placed = true,
+   .KHR_maintenance4 = true,
+   .KHR_map_memory2 = true,
 };
 
 const struct vk_device_extension_table wrapper_filter_extensions =
