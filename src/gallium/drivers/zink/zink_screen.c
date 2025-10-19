@@ -2871,6 +2871,7 @@ init_driver_workarounds(struct zink_screen *screen)
    case VK_DRIVER_ID_MESA_RADV:
    case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA:
    case VK_DRIVER_ID_MESA_LLVMPIPE:
+   case VK_DRIVER_ID_QUALCOMM_PROPRIETARY:
    case VK_DRIVER_ID_MESA_TURNIP:
    case VK_DRIVER_ID_MESA_V3DV:
    case VK_DRIVER_ID_MESA_PANVK:

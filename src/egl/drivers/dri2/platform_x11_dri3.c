@@ -529,13 +529,13 @@ dri3_x11_connect(struct dri2_egl_display *dri2_dpy, bool swrast)
    if (dri2_dpy->fd_render_gpu < 0) {
       int conn_error = xcb_connection_has_error(dri2_dpy->conn);
       if (!swrast) {
+         return true;
          _eglLog(_EGL_WARNING, "DRI3 error: Could not get DRI3 device");
          _eglLog(_EGL_WARNING, "Ensure your X server supports DRI3 to get accelerated rendering");
          if (conn_error)
             _eglLog(_EGL_WARNING, "DRI3: Failed to initialize");
       }
 
-      return true;
    }
 
    loader_get_user_preferred_fd(&dri2_dpy->fd_render_gpu,
