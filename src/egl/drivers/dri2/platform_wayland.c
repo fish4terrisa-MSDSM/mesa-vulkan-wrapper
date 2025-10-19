@@ -2608,6 +2608,8 @@ dri2_initialize_wayland_drm_extensions(struct dri2_egl_display *dri2_dpy)
       dmabuf_feedback_format_table_fini(&dri2_dpy->format_table);
    }
 
+   if (dri2_dpy->kopper)
+      return true;
 #ifdef HAVE_BIND_WL_DISPLAY
    /* We couldn't retrieve a render node from the dma-buf feedback (or the
     * feedback was not advertised at all), so we must fallback to wl_drm. */
