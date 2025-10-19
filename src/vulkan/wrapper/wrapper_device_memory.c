@@ -125,9 +125,10 @@ wrapper_MapMemory2KHR(VkDevice _device,
    const VkMemoryMapPlacedInfoEXT *placed_info;
    const struct hash_entry *entry = NULL;
    int fd;
-
-   placed_info = vk_find_struct_const(pMemoryMapInfo->pNext,
+   if (pMemoryMapInfo->flags & VK_MEMORY_MAP_PLACED_BIT_EXT) {
+      placed_info = vk_find_struct_const(pMemoryMapInfo->pNext,
                                       MEMORY_MAP_PLACED_INFO_EXT);
+   }
    if (pMemoryMapInfo->memory != VK_NULL_HANDLE)
       entry = _mesa_hash_table_search(device->memorys,
                                       (void *)pMemoryMapInfo->memory);
@@ -136,7 +137,7 @@ wrapper_MapMemory2KHR(VkDevice _device,
                                               pMemoryMapInfo->memory,
                                               pMemoryMapInfo->offset,
                                               pMemoryMapInfo->size,
-                                              0,
+                                              pMemoryMapInfo->flags,
                                               ppData);
    }
    memory = entry->data;
