@@ -25,6 +25,7 @@ VK_DEFINE_HANDLE_CASTS(wrapper_instance, vk.base, VkInstance,
 struct wrapper_physical_device {
    struct vk_physical_device vk;
    VkPhysicalDeviceProperties2 properties2;
+   VkPhysicalDeviceDriverProperties driver_properties;
    VkPhysicalDevice dispatch_handle;
    VkPhysicalDeviceMemoryProperties memory_properties;
    struct wsi_device wsi_device;

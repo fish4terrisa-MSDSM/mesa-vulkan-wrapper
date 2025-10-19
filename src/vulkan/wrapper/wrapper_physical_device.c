@@ -148,6 +148,10 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       pdevice->vk.wsi_device = &pdevice->wsi_device;
       pdevice->wsi_device.force_bgra8_unorm_first = true;
 
+      pdevice->driver_properties = (VkPhysicalDeviceDriverProperties) {
+         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+      };
+
       pdevice->properties2 = (VkPhysicalDeviceProperties2) {
          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
          .pNext = &pdevice->driver_properties,
