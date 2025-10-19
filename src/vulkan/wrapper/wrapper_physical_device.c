@@ -46,6 +46,11 @@ wrapper_setup_device_extensions(struct wrapper_physical_device *pdevice) {
 
    exts->KHR_present_wait = exts->KHR_timeline_semaphore;
 
+   // Needed by dxvk
+   exts->EXT_transform_feedback = true;
+   exts->EXT_host_query_reset = true;
+   exts->EXT_custom_border_color = true;
+
    return VK_SUCCESS;
 }
 
@@ -142,6 +147,13 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       supported_features->memoryMapPlaced = true;
       supported_features->memoryUnmapReserve = true;
       supported_features->textureCompressionBC = true;
+
+      // dxvk extension features support
+      supported_features->geometryStreams = true;
+      supported_features->transformFeedback = true;
+      supported_features->hostQueryReset = true;
+      supported_features->customBorderColors = true;
+      supported_features->customBorderColorWithoutFormat = true;
 
       result = wsi_device_init(&pdevice->wsi_device,
                                wrapper_physical_device_to_handle(pdevice),
