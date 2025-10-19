@@ -171,7 +171,6 @@ wrapper_CreateDevice(VkPhysicalDevice physicalDevice,
    if (!physical_device->backup_supported_features.feature) { \
       VK_STRUCTURE_TYPE_##type##_cast *ext = (VK_STRUCTURE_TYPE_##type##_cast *) vk_find_struct_const(pCreateInfo, type); \
       if (ext) { \
-         WLOG("Faking extension support for " #extension "->" #feature); \
          ext->feature = ext->feature & physical_device->backup_supported_features.feature; \
       } \
    }
