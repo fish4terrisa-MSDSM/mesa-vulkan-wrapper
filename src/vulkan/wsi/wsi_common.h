@@ -181,6 +181,9 @@ struct wsi_device {
 
    bool sw;
 
+
+   bool forcesync;
+
    bool needs_blit;
 
    /* Set to true if the implementation is ok with linear WSI images. */

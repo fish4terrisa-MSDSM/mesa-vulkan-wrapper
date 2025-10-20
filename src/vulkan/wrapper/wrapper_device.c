@@ -22,7 +22,6 @@ const struct vk_device_extension_table wrapper_device_extensions =
    .KHR_present_wait = true,
    .KHR_incremental_present = true,
    .EXT_map_memory_placed = true,
-   .KHR_maintenance4 = true,
    .KHR_map_memory2 = true,
 };
 
