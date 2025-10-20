@@ -35,6 +35,7 @@ const struct vk_device_extension_table wrapper_filter_extensions =
    // The following extensions are listed as broken in eden
    //.EXT_custom_border_color = true,
    .KHR_shader_atomic_int64 = true,
+   .KHR_push_descriptor = true, 
    //.EXT_extended_dynamic_state2 = true,
    //.EXT_vertex_input_dynamic_state = true,
 };
