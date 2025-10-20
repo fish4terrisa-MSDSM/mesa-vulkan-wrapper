@@ -219,7 +219,7 @@ VKAPI_ATTR void VKAPI_CALL
 wrapper_GetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
                                   VkPhysicalDeviceFeatures* pFeatures)
 {
-   return vk_common_GetPhysicalDeviceFeatures(physicalDevice, pFeatures);
+   vk_common_GetPhysicalDeviceFeatures(physicalDevice, pFeatures);
 }
 
 VKAPI_ATTR void VKAPI_CALL
