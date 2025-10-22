@@ -203,8 +203,7 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       supported_features->memoryMapPlaced = true;
       supported_features->memoryUnmapReserve = true;
       pdevice->enable_bc =
-         !supported_features->textureCompressionBC
-         && (WRAPPER_DEBUG & WRAPPER_BC);
+         !supported_features->textureCompressionBC;
       supported_features->textureCompressionBC = true;
 
       /* Hook format properties functions for BC emulation */
