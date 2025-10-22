@@ -634,7 +634,7 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
                /* Fall back to direct copy for this region */
                VkBufferImageCopy emulated_region = *region;
                //cmd_buffer->device->vk.dispatch_table.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
-               device->dispatch_table.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
+               device->dispatch_table.CmdCopyBufferToImage(cmd_buffer->dispatch_handle, srcBuffer, dstImage,
                                                          dstImageLayout, 1, &emulated_region);
                continue;
             }
@@ -650,7 +650,7 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
             
             /* Copy using emulated format - this will work but data won't be decompressed */
             //cmd_buffer->device->vk.dispatch_table.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
-            device->dispatch_table.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
+            device->dispatch_table.CmdCopyBufferToImage(cmd_buffer->dispatch_handle, srcBuffer, dstImage,
                                                       dstImageLayout, 1, &emulated_region);
             
             /* Clean up staging buffer */
@@ -663,6 +663,6 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
    }
    
    /* Not a BC emulated image, pass through */
-   device->dispatch_table.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
+   device->dispatch_table.CmdCopyBufferToImage(cmd_buffer->dispatch_handle, srcBuffer, dstImage,
                                                  dstImageLayout, regionCount, pRegions);
 }

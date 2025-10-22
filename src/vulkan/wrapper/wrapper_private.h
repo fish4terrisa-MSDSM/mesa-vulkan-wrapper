@@ -27,7 +27,6 @@ VK_DEFINE_HANDLE_CASTS(wrapper_instance, vk.base, VkInstance,
 
 struct wrapper_physical_device {
    struct vk_physical_device vk;
-   bool enable_bc;
    VkPhysicalDeviceProperties2 properties2;
    VkPhysicalDeviceDriverProperties driver_properties;
    VkPhysicalDevice dispatch_handle;
@@ -38,6 +37,7 @@ struct wrapper_physical_device {
    struct vk_physical_device_dispatch_table dispatch_table;
    bool robustness2_emulated;
    bool null_descriptors_emulated;
+   bool enable_bc;
 };
 
 VK_DEFINE_HANDLE_CASTS(wrapper_physical_device, vk.base, VkPhysicalDevice,
