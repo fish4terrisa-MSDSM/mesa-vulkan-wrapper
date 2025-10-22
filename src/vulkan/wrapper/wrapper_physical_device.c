@@ -194,7 +194,6 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       supported_features->depthBiasClamp = true;
       supported_features->memoryMapPlaced = true;
       supported_features->memoryUnmapReserve = true;
-      supported_features->textureCompressionBC = true;
       supported_features->fillModeNonSolid = true;
       supported_features->shaderClipDistance = true;
       supported_features->shaderCullDistance = true;
@@ -203,6 +202,9 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       supported_features->imageCompressionControlSwapchain = false;
       supported_features->memoryMapPlaced = true;
       supported_features->memoryUnmapReserve = true;
+      pdevice->enable_bc =
+         !supported_features->textureCompressionBC
+         && (WRAPPER_DEBUG & WRAPPER_BC);
       supported_features->textureCompressionBC = true;
 
       /* Hook format properties functions for BC emulation */
