@@ -1142,46 +1142,13 @@ wrapper_GetDescriptorSetLayoutSizeEXT(VkDevice _device,
                                       VkDeviceSize* pLayoutSizeInBytes)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
-   if (device->null_descriptors_enabled && pData && descriptorUpdateTemplate != VK_NULL_HANDLE) {
-      /* Get cached template info */
-      struct hash_entry *entry = _mesa_hash_table_search(device->template_cache, descriptorUpdateTemplate);
-      if (entry) {
-         VkDescriptorUpdateTemplateCreateInfo *create_info = entry->data;
-         
-         /* Create a copy of the data to modify */
-         size_t data_size = 0;
-         for (uint32_t i = 0; i < create_info->descriptorUpdateEntryCount; i++) {
-            const VkDescriptorUpdateTemplateEntry *template_entry = &create_info->pDescriptorUpdateEntries[i];
-            size_t entry_end = template_entry->offset + template_entry->stride * template_entry->descriptorCount;
-            if (entry_end > data_size) {
-               data_size = entry_end;
-            }
-         }
-         
-         void *modified_data = malloc(data_size);
-         if (modified_data) {
-            memcpy(modified_data, pData, data_size);
-            
-            /* Substitute null descriptors in the copied data */
-            substitute_null_descriptors_in_template(device, create_info, modified_data);
-            
-            /* Call the driver with modified data */
-            device->dispatch_table.UpdateDescriptorSetWithTemplate(device->dispatch_handle,
-                                                                   descriptorSet,
-                                                                   descriptorUpdateTemplate,
-                                                                   modified_data);
-            free(modified_data);
-            return;
-         }
-      }
-   }
+
    /* For now, pass through to driver - null descriptor emulation for descriptor buffers
     * would require intercepting descriptor writes into buffer memory */
-   device->dispatch_table.UpdateDescriptorSetWithTemplate(device->dispatch_handle,
-                                                          descriptorSet,
-                                                          descriptorUpdateTemplate,
-                                                          pData);
+   device->dispatch_table.GetDescriptorSetLayoutSizeEXT(device->dispatch_handle,
+                                                        layout, pLayoutSizeInBytes);
 }
+
 
 VKAPI_ATTR void VKAPI_CALL
 wrapper_GetDescriptorSetLayoutBindingOffsetEXT(VkDevice _device,
