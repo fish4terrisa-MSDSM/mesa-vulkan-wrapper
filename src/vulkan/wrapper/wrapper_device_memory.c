@@ -5,6 +5,8 @@
 #include "util/os_file.h"
 #include "vk_util.h"
 #include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 VKAPI_ATTR VkResult VKAPI_CALL
 wrapper_AllocateMemory(VkDevice _device,

@@ -12,6 +12,57 @@
 #include "wsi_common.h"
 #include "util/os_misc.h"
 
+static bool
+wrapper_has_extension(VkExtensionProperties *extensions, uint32_t count, const char *name)
+{
+   for (uint32_t i = 0; i < count; i++) {
+      if (strcmp(extensions[i].extensionName, name) == 0)
+         return true;
+   }
+   return false;
+}
+
+void
+wrapper_check_robustness2_emulation(struct wrapper_physical_device *physical_device)
+{
+   /* Check if native robustness2 is supported */
+   VkExtensionProperties device_extensions[64]; /* Reasonable limit */
+   uint32_t extension_count = 64;
+
+   VkResult result = physical_device->dispatch_table.EnumerateDeviceExtensionProperties(
+      physical_device->dispatch_handle, NULL, &extension_count, device_extensions);
+
+   bool has_native_robustness2 = (result == VK_SUCCESS) &&
+      wrapper_has_extension(device_extensions, extension_count, VK_KHR_ROBUSTNESS_2_EXTENSION_NAME);
+
+   if (has_native_robustness2) {
+      /* Check if nullDescriptor feature is supported */
+      VkPhysicalDeviceRobustness2FeaturesKHR robustness2_features = {
+         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_KHR,
+         .pNext = NULL,
+      };
+
+      VkPhysicalDeviceFeatures2 features2 = {
+         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+         .pNext = &robustness2_features,
+      };
+
+      physical_device->dispatch_table.GetPhysicalDeviceFeatures2(
+         physical_device->dispatch_handle, &features2);
+
+      if (robustness2_features.nullDescriptor) {
+         /* Native support available, no emulation needed */
+         physical_device->robustness2_emulated = false;
+         physical_device->null_descriptors_emulated = false;
+         return;
+      }
+   }
+
+   /* Enable emulation - we'll advertise KHR_robustness2 even if not natively supported */
+   physical_device->robustness2_emulated = !has_native_robustness2;
+   physical_device->null_descriptors_emulated = true;
+}
+
 static VkResult
 wrapper_setup_device_extensions(struct wrapper_physical_device *pdevice) {
    struct vk_device_extension_table *exts = &pdevice->vk.supported_extensions;
@@ -50,6 +101,11 @@ wrapper_setup_device_extensions(struct wrapper_physical_device *pdevice) {
    exts->EXT_transform_feedback = true;
    exts->EXT_host_query_reset = true;
    exts->EXT_custom_border_color = true;
+
+   if (pdevice->robustness2_emulated) {
+      /* We advertise KHR_robustness2 even though it's not natively supported */
+      exts->KHR_robustness2 = true;
+   }
 
    return VK_SUCCESS;
 }
@@ -225,7 +281,26 @@ wrapper_GetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
 VKAPI_ATTR void VKAPI_CALL
 wrapper_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
                                    VkPhysicalDeviceFeatures2* pFeatures) {
+   VK_FROM_HANDLE(wrapper_physical_device, pdevice, physicalDevice);
+
    vk_common_GetPhysicalDeviceFeatures2(physicalDevice, pFeatures);
+   /* Handle emulated robustness2 features */
+   if (pdevice->null_descriptors_emulated) {
+      vk_foreach_struct(ext, pFeatures->pNext) {
+         switch (ext->sType) {
+         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_KHR:
+         {
+            VkPhysicalDeviceRobustness2FeaturesKHR *robustness2_features =
+               (VkPhysicalDeviceRobustness2FeaturesKHR *)ext;
+            /* Advertise nullDescriptor as supported through emulation */
+            robustness2_features->nullDescriptor = VK_TRUE;
+            break;
+         }
+         default:
+            break;
+         }
+      }
+   }
 }
 
 VKAPI_ATTR void VKAPI_CALL

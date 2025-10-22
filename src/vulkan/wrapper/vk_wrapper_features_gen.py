@@ -161,6 +161,7 @@ wrapper_setup_device_features(struct wrapper_physical_device *physical_device)
 
    vk_set_physical_device_features(&physical_device->vk.supported_features,
                                    &supported_features2);
+   wrapper_check_robustness2_emulation(physical_device);
 }
 """)
 

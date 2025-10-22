@@ -23,6 +23,8 @@ VK_DEFINE_HANDLE_CASTS(wrapper_instance, vk.base, VkInstance,
                        VK_OBJECT_TYPE_INSTANCE)
 
 struct wrapper_physical_device {
+   bool robustness2_emulated;
+   bool null_descriptors_emulated;
    struct vk_physical_device vk;
    VkPhysicalDeviceProperties2 properties2;
    VkPhysicalDeviceDriverProperties driver_properties;
@@ -55,6 +57,15 @@ struct wrapper_device {
    struct hash_table *memorys;
    struct wrapper_physical_device *physical;
    struct vk_device_dispatch_table dispatch_table;
+
+   /* Null descriptor emulation */
+   bool null_descriptors_enabled;
+   VkBuffer dummy_buffer;
+   VkDeviceMemory dummy_buffer_memory;
+   VkImage dummy_image_1d, dummy_image_2d, dummy_image_3d;
+   VkDeviceMemory dummy_image_memory_1d, dummy_image_memory_2d, dummy_image_memory_3d;
+   VkImageView dummy_image_view_1d, dummy_image_view_2d, dummy_image_view_3d;
+   VkSampler dummy_sampler;
 };
 
 VK_DEFINE_HANDLE_CASTS(wrapper_device, vk.base, VkDevice,
@@ -84,3 +95,44 @@ void destroy_physical_device(struct vk_physical_device *pdevice);
 
 void
 wrapper_setup_device_features(struct wrapper_physical_device *physical_device);
+
+/* Null descriptor emulation functions */
+VkResult
+wrapper_create_dummy_resources(struct wrapper_device *device);
+
+void
+wrapper_destroy_dummy_resources(struct wrapper_device *device);
+
+void
+wrapper_check_robustness2_emulation(struct wrapper_physical_device *physical_device);
+
+/* Descriptor update function declarations */
+VKAPI_ATTR void VKAPI_CALL
+wrapper_UpdateDescriptorSets(VkDevice device,
+                             uint32_t descriptorWriteCount,
+                             const VkWriteDescriptorSet* pDescriptorWrites,
+                             uint32_t descriptorCopyCount,
+                             const VkCopyDescriptorSet* pDescriptorCopies);
+
+VKAPI_ATTR void VKAPI_CALL
+wrapper_UpdateDescriptorSetWithTemplate(VkDevice device,
+                                        VkDescriptorSet descriptorSet,
+                                        VkDescriptorUpdateTemplate descriptorUpdateTemplate,
+                                        const void* pData);
+/* Descriptor buffer support - stub functions for future implementation */
+VKAPI_ATTR void VKAPI_CALL
+wrapper_GetDescriptorSetLayoutSizeEXT(VkDevice device,
+                                      VkDescriptorSetLayout layout,
+                                      VkDeviceSize* pLayoutSizeInBytes);
+
+VKAPI_ATTR void VKAPI_CALL
+wrapper_GetDescriptorSetLayoutBindingOffsetEXT(VkDevice device,
+                                               VkDescriptorSetLayout layout,
+                                               uint32_t binding,
+                                               VkDeviceSize* pOffset);
+
+VKAPI_ATTR void VKAPI_CALL
+wrapper_GetDescriptorEXT(VkDevice device,
+                        const VkDescriptorGetInfoEXT* pDescriptorInfo,
+                        size_t dataSize,
+                        void* pDescriptor);
