@@ -602,7 +602,9 @@ wrapper_DestroyDevice(VkDevice _device, const VkAllocationCallbacks* pAllocator)
       vk_queue_finish(queue);
       vk_free2(&device->vk.alloc, pAllocator, queue);
    }
-   device->dispatch_table.DestroyDevice(device->dispatch_handle, pAllocator);
+   if (device->dispatch_handle != VK_NULL_HANDLE) {
+      device->dispatch_table.DestroyDevice(device->dispatch_handle, pAllocator);
+   }
    simple_mtx_destroy(&device->resource_mutex);
    vk_device_finish(&device->vk);
    vk_free2(&device->vk.alloc, pAllocator, device);
