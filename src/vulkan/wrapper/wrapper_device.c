@@ -574,9 +574,6 @@ wrapper_DestroyDevice(VkDevice _device, const VkAllocationCallbacks* pAllocator)
                             &device->command_buffers, link) {
       wrapper_command_buffer_destroy(device, wcb);
    }
-   if (device->null_descriptors_enabled) {
-      wrapper_destroy_dummy_resources(device);
-   }
    simple_mtx_unlock(&device->resource_mutex);
 
    if (device->null_descriptors_enabled) {
