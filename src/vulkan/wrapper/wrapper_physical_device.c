@@ -210,6 +210,8 @@ VkResult enumerate_physical_device(struct vk_instance *_instance)
       if (pdevice->enable_bc) {
          pdevice->vk.dispatch_table.GetPhysicalDeviceFormatProperties = wrapper_GetPhysicalDeviceFormatProperties;
          pdevice->vk.dispatch_table.GetPhysicalDeviceFormatProperties2 = wrapper_GetPhysicalDeviceFormatProperties2;
+         pdevice->vk.dispatch_table.GetPhysicalDeviceImageFormatProperties = wrapper_GetPhysicalDeviceImageFormatProperties;
+         pdevice->vk.dispatch_table.GetPhysicalDeviceImageFormatProperties2 = wrapper_GetPhysicalDeviceImageFormatProperties2;
       }
 
       // dxvk extension features support
