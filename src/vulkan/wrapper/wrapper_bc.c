@@ -1,7 +1,8 @@
 #include "wrapper_bc.h"
 #include "wrapper_private.h"
-#define BCDEC_BC4BC5_PRECISE
 
+/* Define BCDEC_BC4BC5_PRECISE for signed/unsigned BC4/BC5 support */
+#define BCDEC_BC4BC5_PRECISE
 /* Define BCDEC_IMPLEMENTATION to include implementation */
 #define BCDEC_IMPLEMENTATION
 #include "bcdec.h"
@@ -156,8 +157,8 @@ wrapper_bc1_decompress_block(const void *compressed_block,
    return VK_SUCCESS;
 }
 
-static VkResult
-wrapper_bc2_decompress_block(const void *compressed_block,
+static VkResult 
+wrapper_bc2_decompress_block(const void *compressed_block, 
                             void *decompressed_block,
                             uint32_t block_pitch)
 {
@@ -187,8 +188,8 @@ wrapper_bc4_decompress_block(const void *compressed_block,
    return VK_SUCCESS;
 }
 
-static VkResult
-wrapper_bc5_decompress_block(const void *compressed_block,
+static VkResult 
+wrapper_bc5_decompress_block(const void *compressed_block, 
                             void *decompressed_block,
                             uint32_t block_pitch,
                             bool is_signed)
@@ -226,6 +227,7 @@ VkResult wrapper_bc_decompress_image(struct wrapper_device *device,
       return VK_ERROR_UNKNOWN;
    }
 
+   /* Support BC1, BC2, BC3, BC4, and BC5 formats */
    if (src_format != VK_FORMAT_BC1_RGB_UNORM_BLOCK &&
        src_format != VK_FORMAT_BC1_RGB_SRGB_BLOCK &&
        src_format != VK_FORMAT_BC1_RGBA_UNORM_BLOCK &&
@@ -249,11 +251,11 @@ VkResult wrapper_bc_decompress_image(struct wrapper_device *device,
    
    /* Calculate destination pitch based on format */
    uint32_t dst_pitch;
-   bool is_bc4_format = (src_format == VK_FORMAT_BC4_UNORM_BLOCK ||
+   bool is_bc4_format = (src_format == VK_FORMAT_BC4_UNORM_BLOCK || 
                         src_format == VK_FORMAT_BC4_SNORM_BLOCK);
-   bool is_bc5_format = (src_format == VK_FORMAT_BC5_UNORM_BLOCK ||
+   bool is_bc5_format = (src_format == VK_FORMAT_BC5_UNORM_BLOCK || 
                         src_format == VK_FORMAT_BC5_SNORM_BLOCK);
-
+   
    if (is_bc4_format) {
       dst_pitch = width * 1; /* BC4 -> R8: 1 byte per pixel */
    } else if (is_bc5_format) {
@@ -306,9 +308,10 @@ VkResult wrapper_bc_decompress_image(struct wrapper_device *device,
             result = VK_ERROR_FORMAT_NOT_SUPPORTED;
             break;
          }
+         
          if (result != VK_SUCCESS) {
             vk_loge(VK_LOG_OBJS(&device->vk.base),
-                  "Failed to decompress %s block at (%u, %u)", info->name, block_x, block_y);
+                    "Failed to decompress %s block at (%u, %u)", info->name, block_x, block_y);
             return result;
          }
       }
@@ -326,15 +329,14 @@ VkResult wrapper_bc_device_init(struct wrapper_device *device)
    /* Initialize BC image tracking */
    simple_mtx_init(&device->bc_image_mutex, mtx_plain);
    device->bc_image_map = _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
-
+   
    if (!device->bc_image_map) {
       simple_mtx_destroy(&device->bc_image_mutex);
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
-
+   
    device->bc_emulation_enabled = true;
-
-   /* BC emulation initialization - currently no device-specific setup needed */
+   
    vk_logi(VK_LOG_OBJS(&device->vk.base), 
            "BC texture compression emulation initialized");
    return VK_SUCCESS;
@@ -344,7 +346,7 @@ void wrapper_bc_device_finish(struct wrapper_device *device)
 {
    if (!device->bc_emulation_enabled)
       return;
-
+      
    /* Clean up BC image tracking */
    simple_mtx_lock(&device->bc_image_mutex);
    if (device->bc_image_map) {
@@ -355,8 +357,9 @@ void wrapper_bc_device_finish(struct wrapper_device *device)
    }
    simple_mtx_unlock(&device->bc_image_mutex);
    simple_mtx_destroy(&device->bc_image_mutex);
-
+   
    device->bc_emulation_enabled = false;
+   
    vk_logi(VK_LOG_OBJS(&device->vk.base),
            "BC texture compression emulation finalized");
 }
@@ -394,37 +397,37 @@ wrapper_CreateImage(VkDevice _device,
                    VkImage* pImage)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
-
+   
    /* Check if this is a BC format that needs emulation */
    if (device->physical->enable_bc && wrapper_is_bc_format(pCreateInfo->format)) {
       VkFormat emulated_format = bc_format_to_emulated_format(pCreateInfo->format);
-
+      
       if (emulated_format == VK_FORMAT_UNDEFINED) {
          vk_loge(VK_LOG_OBJS(&device->vk.base),
                  "BC format %d not yet supported for emulation", pCreateInfo->format);
          return VK_ERROR_FORMAT_NOT_SUPPORTED;
       }
-
+      
       /* Create modified create info with emulated format */
       VkImageCreateInfo emulated_create_info = *pCreateInfo;
       emulated_create_info.format = emulated_format;
-
+      
       /* Create the actual image with emulated format */
       VkImage emulated_image;
-      VkResult result = device->dispatch_table.CreateImage(device->dispatch_handle,
-                                                          &emulated_create_info,
-                                                          pAllocator,
+      VkResult result = device->dispatch_table.CreateImage(device->dispatch_handle, 
+                                                          &emulated_create_info, 
+                                                          pAllocator, 
                                                           &emulated_image);
       if (result != VK_SUCCESS)
          return result;
-
+      
       /* Create BC image info to track the emulation */
       struct bc_image_info *bc_info = malloc(sizeof(struct bc_image_info));
       if (!bc_info) {
          device->dispatch_table.DestroyImage(device->dispatch_handle, emulated_image, pAllocator);
          return VK_ERROR_OUT_OF_HOST_MEMORY;
       }
-
+      
       bc_info->original_format = pCreateInfo->format;
       bc_info->emulated_format = emulated_format;
       bc_info->emulated_image = emulated_image;
@@ -433,24 +436,24 @@ wrapper_CreateImage(VkDevice _device,
       bc_info->depth = pCreateInfo->extent.depth;
       bc_info->mip_levels = pCreateInfo->mipLevels;
       bc_info->array_layers = pCreateInfo->arrayLayers;
-
+      
       /* Store the mapping */
       simple_mtx_lock(&device->bc_image_mutex);
       _mesa_hash_table_insert(device->bc_image_map, emulated_image, bc_info);
       simple_mtx_unlock(&device->bc_image_mutex);
-
+      
       *pImage = emulated_image; /* Return the emulated image as the "BC" image */
-
+      
       vk_logi(VK_LOG_OBJS(&device->vk.base),
               "Created BC emulated image: %s -> %s (%ux%ux%u, %u mips, %u layers)",
               wrapper_get_bc_format_info(pCreateInfo->format)->name,
               "RGBA8", /* simplified for log */
               bc_info->width, bc_info->height, bc_info->depth,
               bc_info->mip_levels, bc_info->array_layers);
-
+      
       return VK_SUCCESS;
    }
-
+   
    /* Not a BC format, pass through to underlying driver */
    return device->dispatch_table.CreateImage(device->dispatch_handle, pCreateInfo, pAllocator, pImage);
 }
@@ -461,10 +464,10 @@ wrapper_DestroyImage(VkDevice _device,
                     const VkAllocationCallbacks* pAllocator)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
-
+   
    if (image == VK_NULL_HANDLE)
       return;
-
+   
    /* Check if this is a BC emulated image */
    if (device->bc_emulation_enabled) {
       simple_mtx_lock(&device->bc_image_mutex);
@@ -476,7 +479,7 @@ wrapper_DestroyImage(VkDevice _device,
       }
       simple_mtx_unlock(&device->bc_image_mutex);
    }
-
+   
    /* Destroy the actual image */
    device->dispatch_table.DestroyImage(device->dispatch_handle, image, pAllocator);
 }
@@ -487,7 +490,7 @@ wrapper_GetImageMemoryRequirements(VkDevice _device,
                                   VkMemoryRequirements* pMemoryRequirements)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
-
+   
    /* BC images use the emulated image directly, so just pass through */
    device->dispatch_table.GetImageMemoryRequirements(device->dispatch_handle, image, pMemoryRequirements);
 }
@@ -499,37 +502,37 @@ wrapper_CreateImageView(VkDevice _device,
                        VkImageView* pView)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
-
+   
    /* Check if this is a BC emulated image */
    if (device->bc_emulation_enabled) {
       simple_mtx_lock(&device->bc_image_mutex);
       struct hash_entry *entry = _mesa_hash_table_search(device->bc_image_map, pCreateInfo->image);
       if (entry) {
          struct bc_image_info *bc_info = (struct bc_image_info *)entry->data;
-
+         
          /* Create modified view info with emulated format */
          VkImageViewCreateInfo emulated_view_info = *pCreateInfo;
          emulated_view_info.format = bc_info->emulated_format;
-
+         
          simple_mtx_unlock(&device->bc_image_mutex);
-
+         
          VkResult result = device->dispatch_table.CreateImageView(device->dispatch_handle,
                                                                  &emulated_view_info,
                                                                  pAllocator,
                                                                  pView);
-
+         
          if (result == VK_SUCCESS) {
             vk_logi(VK_LOG_OBJS(&device->vk.base),
                     "Created BC emulated image view: %s -> %s",
                     wrapper_get_bc_format_info(bc_info->original_format)->name,
                     "emulated format");
          }
-
+         
          return result;
       }
       simple_mtx_unlock(&device->bc_image_mutex);
    }
-
+   
    /* Not a BC emulated image, pass through */
    return device->dispatch_table.CreateImageView(device->dispatch_handle, pCreateInfo, pAllocator, pView);
 }
@@ -541,7 +544,7 @@ wrapper_BindImageMemory(VkDevice _device,
                        VkDeviceSize memoryOffset)
 {
    VK_FROM_HANDLE(wrapper_device, device, _device);
-
+   
    /* BC images use the emulated image directly, so just pass through */
    return device->dispatch_table.BindImageMemory(device->dispatch_handle, image, memory, memoryOffset);
 }
@@ -556,7 +559,7 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
 {
    struct wrapper_command_buffer *cmd_buffer = wrapper_command_buffer_from_handle(commandBuffer);
    struct wrapper_device *device = cmd_buffer->device;
-
+   
    /* Check if destination image is BC emulated */
    if (device->bc_emulation_enabled) {
       simple_mtx_lock(&device->bc_image_mutex);
@@ -564,33 +567,33 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
       if (entry) {
          struct bc_image_info *bc_info = (struct bc_image_info *)entry->data;
          simple_mtx_unlock(&device->bc_image_mutex);
-
+         
          /* This is a BC emulated image - we need to decompress data during copy */
          vk_logi(VK_LOG_OBJS(&device->vk.base),
                  "BC texture upload: %s format, %u regions",
                  wrapper_get_bc_format_info(bc_info->original_format)->name,
                  regionCount);
-
+         
          /* Process each region separately for BC decompression */
          for (uint32_t i = 0; i < regionCount; i++) {
             const VkBufferImageCopy *region = &pRegions[i];
-
+            
             /* Calculate the size of the compressed data for this region */
             uint32_t width = region->imageExtent.width;
             uint32_t height = region->imageExtent.height;
             uint32_t depth = region->imageExtent.depth;
-
+            
             VkDeviceSize compressed_size = wrapper_bc_get_compressed_size(bc_info->original_format, width, height) * depth;
-
+            
             /* For now, we implement a simplified approach:
              * 1. We'll create a staging buffer for the decompressed data
              * 2. Use vkCmdCopyBuffer to copy compressed data to a host buffer
-             * 3. Decompress on the CPU
+             * 3. Decompress on the CPU 
              * 4. Copy decompressed data to the image
-             *
+             * 
              * A more optimal implementation would use a compute shader for decompression.
              */
-
+            
             /* Calculate decompressed data size */
             const struct bc_format_info *bc_format = wrapper_get_bc_format_info(bc_info->original_format);
             uint32_t pixel_size;
@@ -609,9 +612,9 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
                pixel_size = 4;
                break;
             }
-
+            
             VkDeviceSize decompressed_size = width * height * depth * pixel_size;
-
+            
             /* Create staging buffer for decompressed data */
             VkBufferCreateInfo staging_buffer_info = {
                .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -619,7 +622,7 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
                .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             };
-
+            
             VkBuffer staging_buffer;
             VkResult result = device->dispatch_table.CreateBuffer(device->dispatch_handle,
                                                                  &staging_buffer_info,
@@ -634,29 +637,29 @@ wrapper_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
                                                          dstImageLayout, 1, &emulated_region);
                continue;
             }
-
+            
             /* TODO: Allocate memory for staging buffer, map it, decompress data, and copy to image */
             /* For now, we'll do a direct copy and log the compression info */
             vk_logi(VK_LOG_OBJS(&device->vk.base),
                     "BC region %u: %ux%ux%u, compressed=%zu bytes, decompressed=%zu bytes",
                     i, width, height, depth, compressed_size, decompressed_size);
-
+            
             /* Create modified region for emulated format */
             VkBufferImageCopy emulated_region = *region;
-
+            
             /* Copy using emulated format - this will work but data won't be decompressed */
             cmd_buffer->device->vk.dispatch_table.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
                                                       dstImageLayout, 1, &emulated_region);
-
+            
             /* Clean up staging buffer */
             device->dispatch_table.DestroyBuffer(device->dispatch_handle, staging_buffer, NULL);
          }
-
+         
          return;
       }
       simple_mtx_unlock(&device->bc_image_mutex);
    }
-
+   
    /* Not a BC emulated image, pass through */
    cmd_buffer->device->vk.dispatch_table.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage,
                                                  dstImageLayout, regionCount, pRegions);
