@@ -8,6 +8,21 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+uint32_t
+wrapper_select_device_memory_type(struct wrapper_device *device,
+                                  VkMemoryPropertyFlags flags) {
+   VkPhysicalDeviceMemoryProperties *props =
+      &device->physical->memory_properties;
+   int idx;
+
+   for (idx = 0; idx < props->memoryTypeCount; idx ++) {
+      if (props->memoryTypes[idx].propertyFlags & flags) {
+         break;
+      }
+   }
+   return idx < props->memoryTypeCount ? idx : UINT32_MAX;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 wrapper_AllocateMemory(VkDevice _device,
                        const VkMemoryAllocateInfo* pAllocateInfo,

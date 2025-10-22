@@ -23,8 +23,6 @@ VK_DEFINE_HANDLE_CASTS(wrapper_instance, vk.base, VkInstance,
                        VK_OBJECT_TYPE_INSTANCE)
 
 struct wrapper_physical_device {
-   bool robustness2_emulated;
-   bool null_descriptors_emulated;
    struct vk_physical_device vk;
    VkPhysicalDeviceProperties2 properties2;
    VkPhysicalDeviceDriverProperties driver_properties;
@@ -34,6 +32,8 @@ struct wrapper_physical_device {
    struct wrapper_instance *instance;
    struct vk_features backup_supported_features;
    struct vk_physical_device_dispatch_table dispatch_table;
+   bool robustness2_emulated;
+   bool null_descriptors_emulated;
 };
 
 VK_DEFINE_HANDLE_CASTS(wrapper_physical_device, vk.base, VkPhysicalDevice,
@@ -95,6 +95,11 @@ void destroy_physical_device(struct vk_physical_device *pdevice);
 
 void
 wrapper_setup_device_features(struct wrapper_physical_device *physical_device);
+
+uint32_t
+wrapper_select_device_memory_type(struct wrapper_device *device,
+                                  VkMemoryPropertyFlags flags);
+
 
 /* Null descriptor emulation functions */
 VkResult
